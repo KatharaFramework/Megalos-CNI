@@ -1,0 +1,21 @@
+!
+log file /var/log/frr/frr.log debugging
+!
+ip nht resolve-via-default
+!
+router bgp 65000
+  bgp router-id %s
+  bgp cluster-id %s
+  bgp log-neighbor-changes
+  no bgp default ipv4-unicast
+  neighbor fabric peer-group
+  neighbor fabric remote-as 65000
+  neighbor fabric capability extended-nexthop
+  !
+  address-family l2vpn evpn
+   neighbor fabric activate
+   neighbor fabric route-reflector-client
+  exit-address-family
+  !
+  exit
+!

@@ -1,0 +1,120 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kathara
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+      - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kathara
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kathara
+subjects:
+- kind: ServiceAccount
+  name: kathara
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kathara
+  namespace: kube-system
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-kathara-worker-ds
+  namespace: kube-system
+  labels:
+    k8s-app: kube-kathara-worker
+spec:
+  selector:
+    matchLabels:
+      name: kube-kathara-worker-ds
+  template:
+    metadata:
+      labels:
+        name: kube-kathara-worker-ds
+    spec:
+      hostNetwork: true
+      containers:
+        - name: kube-kathara-worker
+          image: kathara/megalos-bgp-manager:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: cnibin
+              mountPath: /host/opt/cni/bin
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_ADMIN
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: IS_MASTER
+              value: "false"
+      volumes:
+        - name: cnibin
+          hostPath:
+            path: /opt/cni/bin
+      serviceAccountName: kathara
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-kathara-master-ds
+  namespace: kube-system
+  labels:
+    k8s-app: kube-kathara-master
+spec:
+  selector:
+    matchLabels:
+      name: kube-kathara-master-ds
+  template:
+    metadata:
+      labels:
+        name: kube-kathara-master-ds
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: kube-kathara-master
+          image: kathara/megalos-bgp-manager:latest
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_ADMIN
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: IS_MASTER
+              value: "true"
+      volumes:
+        - name: hostroot
+          hostPath:
+            path: /
+      serviceAccountName: kathara
