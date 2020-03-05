@@ -41,13 +41,8 @@ def init_frr():
     os.remove("%s/bgpd_worker.stub" % FRR_CONFIG_DIR)
 
 
-def start_k8s_watch():
-    config.load_incluster_config()
-
-    v1 = client.CoreV1Api()
-    w = watch.Watch()
-
-    for event in w.stream(v1.list_node, _request_timeout=60):
+def start_k8s_watch(v1_client, watch_client):
+    for event in watch_client.stream(v1_client.list_node, timeout_seconds=60):
         event_type = event['type']
         event_object = event['object']
 
@@ -95,4 +90,10 @@ if __name__ == '__main__':
     init_frr()
 
     # Starts Kubernetes Node Watcher on this node
-    start_k8s_watch()
+    config.load_incluster_config()
+
+    v1 = client.CoreV1Api()
+    w = watch.Watch()
+
+    while True:
+        start_k8s_watch(v1, w)
