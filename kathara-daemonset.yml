@@ -30,7 +30,7 @@ metadata:
   name: kathara
   namespace: kube-system
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube-kathara-worker-ds
@@ -73,7 +73,7 @@ spec:
             path: /opt/cni/bin
       serviceAccountName: kathara
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube-kathara-master-ds

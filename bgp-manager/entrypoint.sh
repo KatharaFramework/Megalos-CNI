@@ -13,4 +13,4 @@ if [ "$IS_MASTER" = "false" ]; then
 fi
 
 # Run the BGP Manager
-python /mgr/app.py
+python3 /mgr/app.py

@@ -4,7 +4,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     wget \
     gnupg \
     lsb-release \
-    python-pip
+    python3-pip
 
 RUN wget -O- https://apps3.cumulusnetworks.com/setup/cumulus-apps-deb.pubkey | apt-key add -   
    
@@ -21,6 +21,6 @@ COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod u+x /entrypoint.sh
 
 COPY mgr/ /mgr
-RUN pip install -r /mgr/requirements.txt
+RUN python3 -m pip install -r /mgr/requirements.txt
 
 ENTRYPOINT ["/entrypoint.sh"]
