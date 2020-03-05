@@ -25,8 +25,8 @@ In this repository you'll find two folders:
 
 Type on terminal 
 
-1. Change the `IMAGE_NAME` variable in `Makefile` with a custom tag `<CUSTOM_NAME>`
-2. Run on terminal `make all` (Golang should be installed, all dependencies are automatically resolved)
+1. Change the `IMAGE_NAME` variable in `Makefile` with a custom tag `<CUSTOM_NAME>`.
+2. Run on terminal `make all` (Golang should be installed, all dependencies are automatically resolved).
 3. Push the Docker Image on your Docker Hub Repository using `docker push <CUSTOM_NAME>`.
-4. Change the `kathara-daemonset.yml` file and replace `kathara/megalos-bgp-manager` with `<CUSTOM_NAME>`
+4. Change the `kathara-daemonset.yml` file and replace `kathara/megalos-bgp-manager` with `<CUSTOM_NAME>`.
 5. Install the DaemonSet in your Kubernetes cluster using `kubeadm create -f kathara-daemonset.yml`.
