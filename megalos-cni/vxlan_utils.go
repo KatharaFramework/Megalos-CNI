@@ -139,7 +139,7 @@ func deleteVxlanLink(vxlanName string, vxlanBridgeName string) error {
 
 	outRule := iptRule{table: iptables.Filter,
 					   chain: "FORWARD",
-					   args: []string{"-i", vxlanBridgeName, "-o", vxlanBridgeName, "-j", "ACCEPT"},
+					   args: []string{"-o", vxlanBridgeName, "-j", "ACCEPT"},
 					   }
 	if err := programChainRule(outRule, false); err != nil {
 		return err
