@@ -95,7 +95,7 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	}
 
 	err = netns.Do(func(hostNS ns.NetNS) error {
-		// Search for the first veth tap interface in the netNS
+		// Search for the first veth interface in the netNS
 		veth1Link, err = netlink.LinkByName(veth1Name)
 		if err != nil {
 			return fmt.Errorf("failed to lookup %q in %q: %v", veth1Name, hostNS.Path(), err)

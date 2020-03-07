@@ -14,7 +14,8 @@ const (
 )
 
 func getVxlanAndBridgeName(name string, suffix string) (string, string) {
-	vxlanName := strings.Replace(strings.Replace(name, "-", "", -1), ".", "", -1)
+	vxlanName := strings.Replace(name, "_", "", -1)
+	// Cut name if greater than five chars
 	if len(vxlanName) > 5 {
 		vxlanName = vxlanName[:vxlanLen]
 	}
@@ -41,7 +42,7 @@ func getDefaultRouteInterfaceName() (int, error) {
 	return -1, fmt.Errorf("can not find default route interface")
 }
 
-func createVxlanLink(name string, suffix string, master string, vxlanId uint) (netlink.Link, error) {
+func createVxlanLink(name string, suffix string, master string, vxlanId int) (netlink.Link, error) {
 	vxlanName, vxlanBridgeName := getVxlanAndBridgeName(name, suffix)
 
 	// Search for desired vxlan bridge
@@ -75,7 +76,7 @@ func createVxlanLink(name string, suffix string, master string, vxlanId uint) (n
 	vxlanLinkAttrs.Name = vxlanName
 	if err = netlink.LinkAdd(&netlink.Vxlan{
 		LinkAttrs: 	vxlanLinkAttrs,
-		VxlanId: 	int(vxlanId),
+		VxlanId: 	vxlanId,
 		SrcAddr: 	masterInterfaceIP,
 		Learning: 	false,
 	}); err != nil {

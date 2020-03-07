@@ -21,7 +21,7 @@ type MegalosConf struct {
 	Master 	   		string 		`json:"master,omitempty"`
 	Suffix      	string   	`json:"suffix"`
 	MacAddress		string		`json:"macAddress"`
-	VxlanId    		uint 		`json:"vxlanId"`
+	VxlanId    		int 		`json:"vxlanId"`
 }
 
 func init() {
