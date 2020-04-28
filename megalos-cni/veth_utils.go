@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/containernetworking/cni/pkg/skel"
@@ -33,28 +32,10 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	containerInterface.Name = args.IfName
 	hostInterface.Name = veth2Name
 
-	vethMacAddressString := getMacAddress(args.Args)
-
-	// Retrieve the MAC Address from the CNI args
-	var vethMacAddress net.HardwareAddr
-	var err error
-	if vethMacAddressString != "" {
-		vethMacAddress, err = net.ParseMAC(vethMacAddressString)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		vethMacAddress = nil
-	}
-
 	linkAttrs := netlink.NewLinkAttrs()
 	linkAttrs.Name = veth1Name
-	// If MAC Address is found in the CNI args, use it.
-	if vethMacAddress != nil {
-		linkAttrs.HardwareAddr = vethMacAddress
-	}
 
-	if err = netlink.LinkAdd(&netlink.Veth{
+	if err := netlink.LinkAdd(&netlink.Veth{
 		LinkAttrs: linkAttrs,
 		PeerName:  veth2Name,
 	}); err != nil {
@@ -73,13 +54,13 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 		return nil, nil, err
 	}
 
+	containerInterface.Mac = veth1Link.Attrs().HardwareAddr.String()
+	hostInterface.Mac = veth2Link.Attrs().HardwareAddr.String()
+
 	// Attach the second veth tap to the associated vxlan bridge
 	if err = attachInterfaceToBridge(vxlanBridgeInterface, veth2Link); err != nil {
 		return nil, nil, err
 	}
-
-	containerInterface.Mac = veth1Link.Attrs().HardwareAddr.String()
-	hostInterface.Mac = veth2Link.Attrs().HardwareAddr.String()
 
 	// Get the container netNS
 	netns, err := ns.GetNS(args.Netns)
@@ -94,6 +75,7 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 		return nil, nil, fmt.Errorf("failed to move %q to host netns: %v", veth1Name, err)
 	}
 
+	// Access the netNS
 	err = netns.Do(func(hostNS ns.NetNS) error {
 		// Search for the first veth interface in the netNS
 		veth1Link, err = netlink.LinkByName(veth1Name)
