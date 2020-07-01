@@ -1,6 +1,7 @@
+import logging
 import os
-from kubernetes import client, config, watch
 
+from kubernetes import client, config, watch
 
 VTYSH_COMMAND_TEMPLATE = [
                             "vtysh",
@@ -12,7 +13,6 @@ VTYSH_COMMAND_TEMPLATE = [
                         ]
 NEIGHBOR_STRING_TEMPLATE = "neighbor %s peer-group fabric"
 
-KUBELET_CONFIG_PATH = "/host/etc/kubernetes/kubelet.conf"
 FRR_CONFIG_DIR = "/etc/frr"
 IS_MASTER = (os.environ.get("IS_MASTER") == "true")
 NODE_IP = os.environ.get("NODE_IP")
@@ -21,6 +21,7 @@ NODE_IP = os.environ.get("NODE_IP")
 def init_frr():
     # Checks which BGP configuration this node should use
     config_to_read = "master" if IS_MASTER else "worker"
+    logging.info("Using `%s` configuration" % config_to_read)
 
     # Opens the stub and reads it
     with open("%s/bgpd_%s.stub" % (FRR_CONFIG_DIR, config_to_read), "r") as bgpd_config_stub_file:
@@ -34,6 +35,7 @@ def init_frr():
         frr_config.write(config_string)
 
     # Start FRR
+    logging.info("Starting FRR daemon.")
     os.system("/etc/init.d/frr start")
 
     # Remove stubs after FRR is started
@@ -41,13 +43,8 @@ def init_frr():
     os.remove("%s/bgpd_worker.stub" % FRR_CONFIG_DIR)
 
 
-def start_k8s_watch():
-    config.load_incluster_config()
-
-    v1 = client.CoreV1Api()
-    w = watch.Watch()
-
-    for event in w.stream(v1.list_node, _request_timeout=60):
+def start_k8s_watch(v1_client, watch_client):
+    for event in watch_client.stream(v1_client.list_node, timeout_seconds=60):
         event_type = event['type']
         event_object = event['object']
 
@@ -60,23 +57,28 @@ def start_k8s_watch():
         if (IS_MASTER and not node_is_master) or (not IS_MASTER and node_is_master):
             # Get the node status
             node_status = event_object.status
-            # Get the IP address from the status
-            ip_address = [x.address for x in node_status.addresses if x.type == "InternalIP"].pop()
+            if node_status and node_status.addresses:
+                # Get the IP address from the status
+                ip_address = [x.address for x in node_status.addresses if x.type == "InternalIP"].pop()
 
-            if event_type == "ADDED":
-                bgp_neighbor("add", ip_address)            # When a node is added, add it as BGP neighbor
-            elif event_type == "DELETED":
-                bgp_neighbor("del", ip_address)            # When a node is removed, delete it as BGP neighbor
-            elif event_type == "MODIFIED":                 # When a node is modified, check if it's ready or not
-                status = [x.status for x in node_status.conditions if x.type == "Ready"].pop()
+                if event_type == "ADDED":
+                    bgp_neighbor("add", ip_address)            # When a node is added, add it as BGP neighbor
+                elif event_type == "DELETED":
+                    bgp_neighbor("del", ip_address)            # When a node is removed, delete it as BGP neighbor
+                elif event_type == "MODIFIED":                 # When a node is modified, check if it's ready or not
+                    status = [x.status for x in node_status.conditions if x.type == "Ready"].pop()
 
-                if status != "True":                # If not, delete it as BGP neighbor
-                    bgp_neighbor("del", ip_address)
-                else:                               # If yes, add it as BGP neighbor
-                    bgp_neighbor("add", ip_address)
+                    if status != "True":                # If not, delete it as BGP neighbor
+                        bgp_neighbor("del", ip_address)
+                    else:                               # If yes, add it as BGP neighbor
+                        bgp_neighbor("add", ip_address)
+            else:
+                logging.info("IP Address not found for %s." % event_object.node_info.machine_id)
 
 
 def bgp_neighbor(event, ip_address):
+    logging.info("BGP Neighbor event: %s, Neighbor IP: %s" % (event, ip_address))
+
     # Adds "no" before the neighbor command if a peer should be removed
     prefix = "" if event == "add" else "no "
     neighbor_string = prefix + (NEIGHBOR_STRING_TEMPLATE % ip_address)
@@ -95,4 +97,10 @@ if __name__ == '__main__':
     init_frr()
 
     # Starts Kubernetes Node Watcher on this node
-    start_k8s_watch()
+    config.load_incluster_config()
+
+    v1 = client.CoreV1Api()
+    w = watch.Watch()
+
+    while True:
+        start_k8s_watch(v1, w)

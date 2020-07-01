@@ -1,17 +1,16 @@
-FROM ubuntu:16.04
+FROM debian:9
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    wget \
-    gnupg \
-    lsb-release \
-    python-pip
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y python3 python3-pip curl apt-transport-https
 
-RUN wget -O- https://apps3.cumulusnetworks.com/setup/cumulus-apps-deb.pubkey | apt-key add -   
-   
-RUN echo "deb [arch=amd64] http://apps3.cumulusnetworks.com/repos/deb $(lsb_release -cs) roh-3" >> /etc/apt/sources.list.d/cumulus-apps-deb-$(lsb_release -cs).list
+RUN curl -s https://deb.frrouting.org/frr/keys.asc | apt-key add -
 
-RUN apt-get update && apt-get install -y frr
-RUN ln -s /usr/lib/frr/frr /etc/init.d/frr
+RUN echo deb https://deb.frrouting.org/frr stretch "frr-stable" | tee -a /etc/apt/sources.list.d/frr.list
+
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y frr
+
+RUN sed -i -e 's/service/no service/' /etc/frr/vtysh.conf && rm /etc/frr/frr.conf
+
+RUN apt clean
 
 COPY cni-bin/megalos /megalos
 
@@ -21,6 +20,6 @@ COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod u+x /entrypoint.sh
 
 COPY mgr/ /mgr
-RUN pip install -r /mgr/requirements.txt
+RUN python3 -m pip install -r /mgr/requirements.txt
 
 ENTRYPOINT ["/entrypoint.sh"]
