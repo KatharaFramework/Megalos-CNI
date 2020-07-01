@@ -12,13 +12,13 @@ Before using this DaemonSet, [**Multus CNI**](https://github.com/intel/multus-cn
 
 After that you can start the Kathara DaemonSet using:
 
-`kubeadm create -f kathara-daemonset.yml`
+`kubectl create -f kathara-daemonset.yml`
 
 ## Building from source
 
 In this repository you'll find two folders:
 
-- `megalos-cni`: CNI source code for Megalos.
+- `megalos-cni`: Golang CNI source code for Megalos.
 - `bgp-manager`: Dockerfile and Python scripts to create the `kathara/megalos-bgp-manager` Docker Image.
 
 ### Steps

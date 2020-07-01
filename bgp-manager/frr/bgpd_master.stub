@@ -9,8 +9,8 @@ router bgp 65000
   bgp log-neighbor-changes
   no bgp default ipv4-unicast
   neighbor fabric peer-group
+  neighbor fabric version 4+
   neighbor fabric remote-as 65000
-  neighbor fabric capability extended-nexthop
   !
   address-family l2vpn evpn
    neighbor fabric activate
