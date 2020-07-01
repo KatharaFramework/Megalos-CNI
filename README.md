@@ -2,15 +2,15 @@
 
 This repository contains the Golang source code for the Megalos CNI Plugin and the Megalos BGP Manager (written in Python).
 
-This plugin creates pure L2 LANs using VXLAN, VXLAN companion bridges and veths.
+This plugin creates pure L2 LANs distributed across different worker nodes using VXLAN.
 
 ### If you want to use Kathara on Kubernetes without any changes, you should only download the `kathara-daemonset.yml` file.
 
 ## Usage
 
-Before using this DaemonSet, [**Multus CNI**](https://github.com/intel/multus-cni) must be started in the cluster.
+Before using this DaemonSet, [**Multus CNI**](https://github.com/intel/multus-cni) must be deployed in the cluster.
 
-After that you can start the Kathara DaemonSet using:
+After that you can deploy the Kathara DaemonSet using:
 
 `kubectl create -f kathara-daemonset.yml`
 
