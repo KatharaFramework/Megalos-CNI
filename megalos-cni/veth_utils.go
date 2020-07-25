@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containernetworking/cni/pkg/skel"
@@ -23,24 +24,16 @@ func randomVethName() string {
 }
 
 func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface netlink.Link) (*current.Interface, *current.Interface, error) {
-	veth1Name := randomVethName()
-	veth2Name := randomVethName()
+	veth1Name, veth2Name, err := makeVeth()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	containerInterface := &current.Interface{}
 	hostInterface := &current.Interface{}
 
 	containerInterface.Name = args.IfName
 	hostInterface.Name = veth2Name
-
-	linkAttrs := netlink.NewLinkAttrs()
-	linkAttrs.Name = veth1Name
-
-	if err := netlink.LinkAdd(&netlink.Veth{
-		LinkAttrs: linkAttrs,
-		PeerName:  veth2Name,
-	}); err != nil {
-		return nil, nil, err
-	}
 
 	// Get first veth interface
 	veth1Link, err := netlink.LinkByName(veth1Name)
@@ -78,14 +71,14 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	// Access the netNS
 	err = netns.Do(func(hostNS ns.NetNS) error {
 		// Search for the first veth interface in the netNS
-		veth1NsLink, err = netlink.LinkByName(veth1Name)
+		veth1NsLink, err := netlink.LinkByName(veth1Name)
 		if err != nil {
 			return fmt.Errorf("failed to lookup %q in %q: %v", veth1Name, hostNS.Path(), err)
 		}
 
 		// Rename interface name and set it up
 		if err = netlink.LinkSetName(veth1NsLink, args.IfName); err != nil {
-			return fmt.Errorf("failed to rename %q in %q in %q: %v", veth1Name, args.IfName, hostNS.Path(), err)
+		 	return fmt.Errorf("failed to rename %q in %q in %q: %v", veth1Name, args.IfName, hostNS.Path(), err)
 		}
 
 		if err = netlink.LinkSetUp(veth1NsLink); err != nil {
@@ -128,4 +121,43 @@ func deleteVethPair(args *skel.CmdArgs) error {
 	}
 
 	return nil
+}
+
+func makeVeth() (string, string, error) {
+	for i := 0; i < 10; i++ {
+		veth1Name := randomVethName()
+		veth2Name := randomVethName()
+
+		linkAttrs := netlink.NewLinkAttrs()
+		linkAttrs.Name = veth1Name
+
+		err := netlink.LinkAdd(&netlink.Veth{
+			LinkAttrs: linkAttrs,
+			PeerName:  veth2Name,
+		})
+
+		switch {
+			case err == nil:
+				return veth1Name, veth2Name, nil
+
+			case os.IsExist(err):
+				if peerExists(veth2Name) {
+					continue
+				}
+
+			default:
+				return "", "", fmt.Errorf("failed to make veth pair: %v", err)
+		}
+	}
+
+	// Should really never be hit
+	return "", "", fmt.Errorf("failed to find a unique veth name")
+}
+
+func peerExists(name string) bool {
+	if _, err := netlink.LinkByName(name); err != nil {
+		return false
+	}
+
+	return true
 }
