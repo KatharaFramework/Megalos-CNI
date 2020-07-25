@@ -47,7 +47,7 @@ func createVxlanLink(name string, suffix string, master string, vxlanId int) (ne
 
 	// Search for desired vxlan bridge
 	vxlanBridge, err := netlink.LinkByName(vxlanBridgeName)
-	if vxlanBridge != nil {
+	if vxlanBridge != nil && err == nil {
 		return vxlanBridge, nil
 	}
 

@@ -42,13 +42,13 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 		return nil, nil, err
 	}
 
-	// Get first veth tap interface
+	// Get first veth interface
 	veth1Link, err := netlink.LinkByName(veth1Name)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Get second veth tap interface
+	// Get second veth interface
 	veth2Link, err := netlink.LinkByName(veth2Name)
 	if err != nil {
 		return nil, nil, err
@@ -57,7 +57,7 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	containerInterface.Mac = veth1Link.Attrs().HardwareAddr.String()
 	hostInterface.Mac = veth2Link.Attrs().HardwareAddr.String()
 
-	// Attach the second veth tap to the associated vxlan bridge
+	// Attach the second veth to the associated vxlan bridge
 	if err = attachInterfaceToBridge(vxlanBridgeInterface, veth2Link); err != nil {
 		return nil, nil, err
 	}
@@ -70,25 +70,25 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	defer netns.Close()
 	containerInterface.Sandbox = netns.Path()
 
-	// Move the first veth tap to the container netNS
+	// Move the first veth to the container netNS
 	if err = netlink.LinkSetNsFd(veth1Link, int(netns.Fd())); err != nil {
-		return nil, nil, fmt.Errorf("failed to move %q to host netns: %v", veth1Name, err)
+		return nil, nil, fmt.Errorf("failed to move %q to netns: %v", veth1Name, err)
 	}
 
 	// Access the netNS
 	err = netns.Do(func(hostNS ns.NetNS) error {
 		// Search for the first veth interface in the netNS
-		veth1Link, err = netlink.LinkByName(veth1Name)
+		veth1NsLink, err = netlink.LinkByName(veth1Name)
 		if err != nil {
 			return fmt.Errorf("failed to lookup %q in %q: %v", veth1Name, hostNS.Path(), err)
 		}
 
 		// Rename interface name and set it up
-		if err = netlink.LinkSetName(veth1Link, args.IfName); err != nil {
+		if err = netlink.LinkSetName(veth1NsLink, args.IfName); err != nil {
 			return fmt.Errorf("failed to rename %q in %q in %q: %v", veth1Name, args.IfName, hostNS.Path(), err)
 		}
 
-		if err = netlink.LinkSetUp(veth1Link); err != nil {
+		if err = netlink.LinkSetUp(veth1NsLink); err != nil {
 			return fmt.Errorf("failed to set %q up: %v", veth1Name, err)
 		}
 

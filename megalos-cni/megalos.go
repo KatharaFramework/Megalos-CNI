@@ -20,7 +20,6 @@ type MegalosConf struct {
 	// Specific CNI Configuration
 	Master 	   		string 		`json:"master,omitempty"`
 	Suffix      	string   	`json:"suffix"`
-	MacAddress		string		`json:"macAddress"`
 	VxlanId    		int 		`json:"vxlanId"`
 }
 
@@ -104,6 +103,6 @@ func cmdCheck(args *skel.CmdArgs) error {
 
 
 func main() {
-	bv.BuildVersion = "0.7.1"
+	bv.BuildVersion = "0.7.2"
 	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, bv.BuildString("megalos"))
 }
