@@ -14,6 +14,8 @@ After that you can deploy the Kathara DaemonSet using:
 
 `kubectl create -f kathara-daemonset.yml`
 
+**Beware**: this CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI (e.g. Flannel, Calico...).
+
 ## Building from source
 
 In this repository you'll find two folders:
