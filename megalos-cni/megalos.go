@@ -103,6 +103,6 @@ func cmdCheck(args *skel.CmdArgs) error {
 
 
 func main() {
-	bv.BuildVersion = "0.7.2"
+	bv.BuildVersion = "0.8.1"
 	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, bv.BuildString("megalos"))
 }

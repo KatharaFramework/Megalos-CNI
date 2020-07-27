@@ -38,13 +38,13 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 	// Get first veth interface
 	veth1Link, err := netlink.LinkByName(veth1Name)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get veth1 %q: %v", veth1Name, err)
 	}
 
 	// Get second veth interface
 	veth2Link, err := netlink.LinkByName(veth2Name)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get veth2 %q: %v", veth2Name, err)
 	}
 
 	containerInterface.Mac = veth1Link.Attrs().HardwareAddr.String()
@@ -73,12 +73,18 @@ func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface 
 		// Search for the first veth interface in the netNS
 		veth1NsLink, err := netlink.LinkByName(veth1Name)
 		if err != nil {
-			return fmt.Errorf("failed to lookup %q in %q: %v", veth1Name, hostNS.Path(), err)
+			return fmt.Errorf("failed to lookup veth1 %q in %q: %v", veth1Name, hostNS.Path(), err)
 		}
 
-		// Rename interface name and set it up
+		// Rename interface veth1
 		if err = netlink.LinkSetName(veth1NsLink, args.IfName); err != nil {
-		 	return fmt.Errorf("failed to rename %q in %q in %q: %v", veth1Name, args.IfName, hostNS.Path(), err)
+		 	return fmt.Errorf("failed to rename veth1 %q in %q in %q: %v", veth1Name, args.IfName, hostNS.Path(), err)
+		}
+
+		// Search for the renamed veth1
+		veth1NsLink, err = netlink.LinkByName(args.IfName)
+		if err != nil {
+			return fmt.Errorf("failed to lookup %q in %q: %v", args.IfName, hostNS.Path(), err)
 		}
 
 		if err = netlink.LinkSetUp(veth1NsLink); err != nil {
@@ -111,7 +117,7 @@ func deleteVethPair(args *skel.CmdArgs) error {
 
 		// Delete the interface
 		if err = netlink.LinkDel(vethLink); err != nil {
-			return fmt.Errorf("failed to set %q up: %v", args.IfName, err)
+			return fmt.Errorf("failed to delete %q: %v", args.IfName, err)
 		}
 
 		return nil

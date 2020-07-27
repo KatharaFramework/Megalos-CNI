@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"strings"
 
 	"github.com/docker/libnetwork/iptables"
@@ -27,32 +29,14 @@ func getVxlanAndBridgeName(name string, suffix string) (string, string) {
 	return vxlanName, bridgePrefix + "-" + vxlanName
 }
 
-func getDefaultRouteInterfaceName() (int, error) {
-	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
-	if err != nil {
-		return -1, err
-	}
-
-	for _, route := range routes {
-		if route.Dst == nil {
-			return route.LinkIndex, nil
-		}
-	}
-
-	return -1, fmt.Errorf("can not find default route interface")
-}
-
 func createVxlanLink(name string, suffix string, master string, vxlanId int) (netlink.Link, error) {
 	vxlanName, vxlanBridgeName := getVxlanAndBridgeName(name, suffix)
 
-	// Search for desired vxlan bridge
-	vxlanBridge, err := netlink.LinkByName(vxlanBridgeName)
-	if vxlanBridge != nil && err == nil {
-		return vxlanBridge, nil
-	}
+	bridgeCreated := true
 
 	// Search the desired master interface index
 	var masterLink netlink.Link
+	var err error
 	if master == "" {
 		masterIndex, err := getDefaultRouteInterfaceName()
 		if err != nil {
@@ -71,20 +55,7 @@ func createVxlanLink(name string, suffix string, master string, vxlanId int) (ne
 	addresses, err := netlink.AddrList(masterLink, netlink.FAMILY_V4)
 	masterInterfaceIP := addresses[0].IP
 
-	// Create the vxlan interface on top of the master interface
-	vxlanLinkAttrs := netlink.NewLinkAttrs()
-	vxlanLinkAttrs.Name = vxlanName
-	if err = netlink.LinkAdd(&netlink.Vxlan{
-		LinkAttrs: 	vxlanLinkAttrs,
-		VxlanId: 	vxlanId,
-		SrcAddr: 	masterInterfaceIP,
-		Learning: 	false,
-	}); err != nil {
-		return nil, err
-	}
-
-	// Get the vxlan interface
-	vxlan, err := netlink.LinkByName(vxlanName)
+	vxlan, err := createVxlanInterface(vxlanName, vxlanId, masterInterfaceIP)
 	if err != nil {
 		return nil, err
 	}
@@ -92,28 +63,47 @@ func createVxlanLink(name string, suffix string, master string, vxlanId int) (ne
 	// Create the vxlan companion bridge
 	vxlanBridgeLinkAttrs := netlink.NewLinkAttrs()
 	vxlanBridgeLinkAttrs.Name = vxlanBridgeName
-	if err = netlink.LinkAdd(&netlink.Bridge{
+	err = netlink.LinkAdd(&netlink.Bridge{
 		LinkAttrs: 	vxlanBridgeLinkAttrs,
-	}); err != nil {
-		return nil, err
+	})
+	switch {
+		// No errors
+		case err == nil:
+			break
+
+		// Bridge already exists, flag that it is not created
+		case os.IsExist(err):
+			bridgeCreated = false
+
+		// Raise other errors
+		default:
+			return nil, fmt.Errorf("failed to create VXLAN companion bridge %q: %v", vxlanBridgeName, err)
 	}
 
 	// Get the vxlan bridge
-	vxlanBridge, err = netlink.LinkByName(vxlanBridgeName)
+	vxlanBridge, err := netlink.LinkByName(vxlanBridgeName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get VXLAN companion bridge %q: %v", vxlanBridgeName, err)
 	}
 
-	if err = attachInterfaceToBridge(vxlanBridge, vxlan); err != nil {
-		return nil, err
+	// If the interface or bridge are new, attach the vxlan interface to the bridge
+	if vxlan != nil || bridgeCreated {
+		// Attach the vxlan interface to the bridge
+		if err = attachInterfaceToBridge(vxlanBridge, vxlan); err != nil {
+			return nil, err
+		}
 	}
 
-	outRule := iptRule{table: iptables.Filter,
-			           chain: "FORWARD",
-					   args: []string{"-o", vxlanBridgeName, "-j", "ACCEPT"},
-					   }
-	if err = programChainRule(outRule, true); err != nil {
-		return nil, err
+	// If the bridge is new, add the iptables rule
+	if bridgeCreated {
+		// Add a bridge forward rule to iptables
+		outRule := iptRule{table: iptables.Filter,
+			chain: "FORWARD",
+			args: []string{"-o", vxlanBridgeName, "-j", "ACCEPT"},
+		}
+		if err = programChainRule(outRule, true); err != nil {
+			return nil, fmt.Errorf("failed to add iptables rule of %q: %v", vxlanBridgeName, err)
+		}
 	}
 
 	return vxlanBridge, nil
@@ -126,7 +116,7 @@ func deleteVxlanLink(vxlanName string, vxlanBridgeName string) error {
 	// If already deleted, skip
 	if vxlanLink != nil {
 		if err := netlink.LinkDel(vxlanLink); err != nil {
-			return err
+			return fmt.Errorf("failed to delete VXLAN interface %q: %v", vxlanName, err)
 		}
 	}
 
@@ -134,7 +124,7 @@ func deleteVxlanLink(vxlanName string, vxlanBridgeName string) error {
 	vxlanBridge, _ := netlink.LinkByName(vxlanBridgeName)
 	if vxlanBridge != nil {
 		if err := netlink.LinkDel(vxlanBridge); err != nil {
-			return err
+			return fmt.Errorf("failed to delete VXLAN companion bridge %q: %v", vxlanBridgeName, err)
 		}
 	}
 
@@ -143,24 +133,51 @@ func deleteVxlanLink(vxlanName string, vxlanBridgeName string) error {
 					   args: []string{"-o", vxlanBridgeName, "-j", "ACCEPT"},
 					   }
 	if err := programChainRule(outRule, false); err != nil {
-		return err
+		return fmt.Errorf("failed to delete iptables rule of %q: %v", vxlanBridgeName, err)
 	}
 
 	return nil
 }
 
-func attachInterfaceToBridge(bridge netlink.Link, iface netlink.Link) error {
-	if err := netlink.LinkSetMaster(iface, bridge); err != nil {
-		return err
-	}
+func createVxlanInterface(vxlanName string, vxlanId int, masterInterfaceIP net.IP) (netlink.Link, error) {
+	// Create the vxlan interface on top of the master interface
+	vxlanLinkAttrs := netlink.NewLinkAttrs()
+	vxlanLinkAttrs.Name = vxlanName
+	err := netlink.LinkAdd(&netlink.Vxlan{
+		LinkAttrs: 	vxlanLinkAttrs,
+		VxlanId: 	vxlanId,
+		SrcAddr: 	masterInterfaceIP,
+		Learning: 	false,
+	})
 
-	if err := netlink.LinkSetUp(iface); err != nil {
-		return err
-	}
+	switch {
+		// No errors
+		case err == nil:
+			// Get the vxlan interface
+			vxlan, err := netlink.LinkByName(vxlanName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get VXLAN interface %q: %v", vxlanName, err)
+			}
 
-	if err := netlink.LinkSetUp(bridge); err != nil {
-		return err
-	}
+			return vxlan, nil
 
-	return nil
+		// Interface already exists
+		case os.IsExist(err):
+			vxlan, err := netlink.LinkByName(vxlanName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get VXLAN interface %q: %v", vxlanName, err)
+			}
+
+			// If interface exists and the vxlan id is the same requested, return nil so interface is not created
+			if vxlanId == vxlan.(*netlink.Vxlan).VxlanId {
+				return nil, nil
+			} else {
+				// If interface exists but the vxlan id is not the same requested, raise error
+				return nil, fmt.Errorf("VXLAN interface %q has a different VXLAN tag: %v", vxlanName, err)
+			}
+
+		// Raise other errors
+		default:
+			return nil, fmt.Errorf("failed to create VXLAN interface %q: %v", vxlanName, err)
+	}
 }
