@@ -165,7 +165,7 @@ func createVxlanInterface(vxlanName string, vxlanId int, masterInterfaceIP net.I
 		case os.IsExist(err):
 			vxlan, err := netlink.LinkByName(vxlanName)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get VXLAN interface %q: %v", vxlanName, err)
+				return nil, fmt.Errorf("VXLAN interface with the same VNI (%d) already exists", vxlanId)
 			}
 
 			// If interface exists and the vxlan id is the same requested, return nil so interface is not created
