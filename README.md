@@ -26,6 +26,7 @@ To avoid the usage of multicast IP addresses, we use EVPN-BGP in such way:
 - Each worker node has a BGP peering with the BGP speaker in the master node.
 - The BGP speaker in the master node acts as a BGP Route Reflector.
 With this setup, when a Pod is started, the MAC Addresses of each of its network interfaces are announced over BGP to the master and reflected to all the workers, so each VTEP knows the association between each MAC Address and the IP Address of the worker node where it is deployed.
+
 So all the traffic over the Kubernetes cluster network is unicast.
 
 ## Building from source
