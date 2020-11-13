@@ -16,6 +16,18 @@ After that you can deploy the Kathara DaemonSet using:
 
 **Beware**: Megalos CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI that manages L3 (e.g. Flannel, Calico...).
 
+## How it works
+
+This CNI creates a VXLAN network overlay over the Kubernetes cluster network.
+The default behaviour of VXLAN is to use multicast groups to deliver BUM traffic, but not on any Kubernetes cluster network multicast traffic is permitted.
+To avoid the usage of multicast IP addresses, we use EVPN-BGP in such way:
+- We deploy on the master node a BGP speaker.
+- We deploy on each worker node a `kube-system` Pod with a BGP speaker.
+- Each worker node has a BGP peering with the BGP speaker in the master node.
+- The BGP speaker in the master node acts as a BGP Route Reflector.
+With this setup, when a Pod is started, the MAC Addresses of each of its network interfaces are announced over BGP to the master and reflected to all the workers, so each VTEP knows the association between each MAC Address and the IP Address of the worker node where it is deployed.
+So all the traffic over the Kubernetes cluster network is unicast.
+
 ## Building from source
 
 In this repository you'll find two folders:
