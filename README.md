@@ -18,16 +18,20 @@ After that you can deploy the Kathara DaemonSet using:
 
 ## How it works
 
-This CNI creates a VXLAN network overlay over the Kubernetes cluster network.
-The default behaviour of VXLAN is to use multicast groups to deliver BUM traffic, but not on any Kubernetes cluster network multicast traffic is permitted.
-To avoid the usage of multicast IP addresses, we use EVPN-BGP in such way:
-- We deploy on the master node a BGP speaker.
-- We deploy on each worker node a `kube-system` Pod with a BGP speaker.
-- Each worker node has a BGP peering with the BGP speaker in the master node.
-- The BGP speaker in the master node acts as a BGP Route Reflector.
-With this setup, when a Pod is started, the MAC Addresses of each of its network interfaces are announced over BGP to the master and reflected to all the workers, so each VTEP knows the association between each MAC Address and the IP Address of the worker node where it is deployed.
+This CNI creates a VXLAN network overlay over the Kubernetes cluster network. By default, VXLAN uses L3 multicast groups to deliver BUM traffic and to learn remote MAC Addresses, but multicast traffic is not always permitted inside a Kubernetes cluster network (see public clouds). To overcome this limitation, we disable the default VXLAN MAC Learning and we replace it with EVPN BGP, which ensures unicast traffic.
 
-So all the traffic over the Kubernetes cluster network is unicast.
+The BGP Manager works as follows:
+- A DaemonSet is deployed on the master node, it contains a Pod that is a BGP speaker.
+- A DaemonSet is deployed on worker nodes, and each worker deploys a Pod that is a BGP speaker.
+- Each worker node Pod has a BGP peering with the BGP speaker Pod in the master node.
+- The BGP speaker Pod in the master node acts as a BGP Route Reflector.
+
+When a Pod is created, the CNI works as follows:
+- Each additional interface of the Pod is assigned to a specific VNI. Each VNI is associated to a different L2 LAN. In this way, we can distribute L2 LANs inside the cluster.
+- On the worker node where the Pod is deployed, VTEPs for the specific Pod VNIs are created (if not already present).
+- Connections between Pod interfaces and their speficic VTEPs are created using `veth` pairs.
+
+At this point, the BGP control plane is able to fetch the information of Pod network interfaces. So, MAC Addresses of Pod interfaces are announced over BGP to the master and reflected to all the workers. Each worker BGP speaker Pod receives the announce: if a VTEP for a specific VNI announced in the BGP message is present, the VTEP saves the association between MAC Address and the IP Address of the worker node where the new interfaces of that VNI are deployed.
 
 ## Building from source
 
