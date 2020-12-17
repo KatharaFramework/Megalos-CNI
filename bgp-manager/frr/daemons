@@ -1,2 +1,4 @@
 zebra=yes
 bgpd=yes
+
+zebra_options="  -A 127.0.0.1 -s 90000000"
