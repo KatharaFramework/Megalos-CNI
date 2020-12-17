@@ -8,7 +8,7 @@ RUN echo deb https://deb.frrouting.org/frr stretch "frr-stable" | tee -a /etc/ap
 
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y frr
 
-RUN sed -i -e 's/service/no service/' /etc/frr/vtysh.conf && rm /etc/frr/frr.conf
+RUN rm /etc/frr/frr.conf
 
 RUN apt clean
 

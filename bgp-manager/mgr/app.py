@@ -4,13 +4,13 @@ import os
 from kubernetes import client, config, watch
 
 VTYSH_COMMAND_TEMPLATE = [
-                            "vtysh",
-                            "-c \"configure terminal\"",
-                            "-c \"router bgp 65000\"",
-                            "-c \"#neighbor#\"",
-                            "-c \"exit\"",
-                            "-c \"exit\""
-                        ]
+    "vtysh",
+    "-c \"configure terminal\"",
+    "-c \"router bgp 65000\"",
+    "-c \"#neighbor#\"",
+    "-c \"exit\"",
+    "-c \"exit\""
+]
 NEIGHBOR_STRING_TEMPLATE = "neighbor %s peer-group fabric"
 
 FRR_CONFIG_DIR = "/etc/frr"
@@ -62,15 +62,15 @@ def start_k8s_watch(v1_client, watch_client):
                 ip_address = [x.address for x in node_status.addresses if x.type == "InternalIP"].pop()
 
                 if event_type == "ADDED":
-                    bgp_neighbor("add", ip_address)            # When a node is added, add it as BGP neighbor
+                    bgp_neighbor("add", ip_address)  # When a node is added, add it as BGP neighbor
                 elif event_type == "DELETED":
-                    bgp_neighbor("del", ip_address)            # When a node is removed, delete it as BGP neighbor
-                elif event_type == "MODIFIED":                 # When a node is modified, check if it's ready or not
+                    bgp_neighbor("del", ip_address)  # When a node is removed, delete it as BGP neighbor
+                elif event_type == "MODIFIED":  # When a node is modified, check if it's ready or not
                     status = [x.status for x in node_status.conditions if x.type == "Ready"].pop()
 
-                    if status != "True":                # If not, delete it as BGP neighbor
+                    if status != "True":  # If not, delete it as BGP neighbor
                         bgp_neighbor("del", ip_address)
-                    else:                               # If yes, add it as BGP neighbor
+                    else:  # If yes, add it as BGP neighbor
                         bgp_neighbor("add", ip_address)
             else:
                 logging.info("IP Address not found for %s." % event_object.node_info.machine_id)
@@ -90,6 +90,9 @@ def bgp_neighbor(event, ip_address):
 
     # Exec the vtysh command
     os.system(" ".join(command_to_execute))
+
+    # Overwrite current frr.conf
+    os.system("vtysh -c 'write'")
 
 
 if __name__ == '__main__':
