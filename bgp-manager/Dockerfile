@@ -1,6 +1,6 @@
 FROM debian:9
 
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y python3 python3-pip curl apt-transport-https
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y gnupg2 curl apt-transport-https procps
 
 RUN curl -s https://deb.frrouting.org/frr/keys.asc | apt-key add -
 
@@ -18,8 +18,5 @@ COPY frr/ /etc/frr
 
 COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod u+x /entrypoint.sh
-
-COPY mgr/ /mgr
-RUN python3 -m pip install -r /mgr/requirements.txt
 
 ENTRYPOINT ["/entrypoint.sh"]

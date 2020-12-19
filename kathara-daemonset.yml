@@ -63,6 +63,53 @@ metadata:
   namespace: kube-system
 ---
 apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-kathara-master
+  namespace: kube-system
+  labels:
+    name: kube-kathara-master
+spec:
+  selector:
+    matchLabels:
+      name: kube-kathara-master
+  template:
+    metadata:
+      labels:
+        name: kube-kathara-master
+    spec:
+      containers:
+        - name: kube-kathara-master
+          image: kathara/megalos-bgp-manager:latest
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_ADMIN
+          env:
+            - name: IS_MASTER
+              value: "true"
+      serviceAccountName: kathara
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kathara-master
+  namespace: kube-system
+  labels:
+    name: kathara-master
+spec:
+  type: NodePort
+  selector:
+    name: kube-kathara-master
+  ports:
+    - protocol: TCP
+      port: 179
+      targetPort: 179
+---
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube-kathara-worker-ds
@@ -96,56 +143,12 @@ spec:
           env:
             - name: IS_MASTER
               value: "false"
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
       volumes:
         - name: cnibin
           hostPath:
             path: /opt/cni/bin
       serviceAccountName: kathara
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kube-kathara-master
-  namespace: kube-system
-  labels:
-    name: kube-kathara-master
-spec:
-  selector:
-    matchLabels:
-      name: kube-kathara-master
-  template:
-    metadata:
-      labels:
-        name: kube-kathara-master
-    spec:
-      containers:
-        - name: kube-kathara-master
-          image: kathara/megalos-bgp-manager:latest
-          imagePullPolicy: Always
-          securityContext:
-            privileged: true
-            capabilities:
-              add:
-                - NET_ADMIN
-                - NET_RAW
-                - SYS_ADMIN
-          env:
-            - name: IS_MASTER
-              value: "true"
-      serviceAccountName: kathara
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kathara-master
-  namespace: kube-system
-  labels:
-    name: kathara-master
-spec:
-  type: NodePort
-  selector:
-    name: kube-kathara-master
-  ports:
-    - protocol: TCP
-      port: 179
-      targetPort: 179
