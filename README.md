@@ -1,6 +1,6 @@
 # Megalos CNI
 
-This repository contains the Golang source code for the Megalos CNI Plugin and the Megalos BGP Manager (written in Python).
+This repository contains the Golang source code for the Megalos CNI Plugin and the Megalos BGP Manager.
 
 This plugin creates pure L2 LANs distributed across different worker nodes using VXLAN.
 
@@ -21,24 +21,23 @@ After that you can deploy the Kathara DaemonSet using:
 This CNI creates a VXLAN network overlay over the Kubernetes cluster network. By default, VXLAN uses L3 multicast groups to deliver BUM traffic and to learn remote MAC Addresses, but multicast traffic is not always permitted inside a Kubernetes cluster network (see public clouds). To overcome this limitation, we disable the default VXLAN MAC Learning and we replace it with EVPN BGP, which ensures unicast traffic.
 
 The BGP Manager works as follows:
-- A DaemonSet is deployed on the master node, it contains a Pod that is a BGP speaker.
 - A DaemonSet is deployed on worker nodes, and each worker deploys a Pod that is a BGP speaker.
-- Each worker node Pod has a BGP peering with the BGP speaker Pod in the master node.
-- The BGP speaker Pod in the master node acts as a BGP Route Reflector.
+- A Service is created, with TCP port 179 and it is linked to a Deployment that contains a Pod that acts as a BGP Route Reflector. The Route Reflector accepts dynamic BGP peerings, so it does not require further configuration. 
+- Each worker node Pod has a single BGP peering with the BGP Route Reflector (using the Service Cluster IP Address).
 
 When a Pod is created, the CNI works as follows:
 - Each additional interface of the Pod is assigned to a specific VNI. Each VNI is associated to a different L2 LAN. In this way, we can distribute L2 LANs inside the cluster.
 - On the worker node where the Pod is deployed, VTEPs for the specific Pod VNIs are created (if not already present).
 - Connections between Pod interfaces and their speficic VTEPs are created using `veth` pairs.
 
-At this point, the BGP control plane is able to fetch the information of Pod network interfaces. So, MAC Addresses of Pod interfaces are announced over BGP to the master and reflected to all the workers. Each worker BGP speaker Pod receives the announce: if a VTEP for a specific VNI announced in the BGP message is present, the VTEP saves the association between MAC Address and the IP Address of the worker node where the new interfaces of that VNI are deployed.
+At this point, the BGP control plane is able to fetch the information of Pod network interfaces. So, MAC Addresses of Pod interfaces are announced over BGP to the Route Reflector and reflected to all the other worker BGP speakers. Each worker BGP Pod receives the announce: if a VTEP for a specific VNI announced in the BGP message is present, the VTEP saves the association between MAC Address and the IP Address of the worker node where the new interfaces of that VNI are deployed.
 
 ## Building from source
 
 In this repository you'll find two folders:
 
 - `megalos-cni`: Golang CNI source code for Megalos.
-- `bgp-manager`: Dockerfile and Python scripts to create the `kathara/megalos-bgp-manager` Docker Image.
+- `bgp-manager`: Dockerfile and Bash scripts to create the `kathara/megalos-bgp-manager` Docker Image.
 
 ### Steps to build and deploy a custom version of the CNI
 
