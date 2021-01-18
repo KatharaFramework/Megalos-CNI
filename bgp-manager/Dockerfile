@@ -10,7 +10,8 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y frr
 
 RUN rm /etc/frr/frr.conf
 
-RUN apt clean
+RUN apt clean && \
+    rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
 COPY cni-bin/megalos /megalos
 
