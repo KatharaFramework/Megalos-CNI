@@ -4,11 +4,12 @@ log file /var/log/frr/frr.log debugging
 ip nht resolve-via-default
 !
 router bgp 65000
-  bgp router-id %s
+  bgp router-id __NODE_IP__
   no bgp default ipv4-unicast
   neighbor fabric peer-group
   neighbor fabric version 4+
   neighbor fabric remote-as 65000
+  neighbor __SERVICE_IP__ peer-group fabric
   !
   address-family l2vpn evpn
    neighbor fabric activate
