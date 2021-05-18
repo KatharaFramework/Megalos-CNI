@@ -7,7 +7,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/cni/pkg/types/040"
 	"github.com/containernetworking/cni/pkg/version"
 
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
@@ -56,9 +56,9 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
-	result := &current.Result{
+	result := &types040.Result{
 		CNIVersion: conf.CNIVersion,
-		Interfaces: []*current.Interface{hostInterface, containerInterface},
+		Interfaces: []*types040.Interface{hostInterface, containerInterface},
 	}
 
 	return types.PrintResult(result, conf.CNIVersion)
@@ -103,6 +103,6 @@ func cmdCheck(args *skel.CmdArgs) error {
 
 
 func main() {
-	bv.BuildVersion = "0.8.2"
+	bv.BuildVersion = "0.8.3"
 	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, bv.BuildString("megalos"))
 }

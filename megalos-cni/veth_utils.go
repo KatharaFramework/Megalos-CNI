@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/containernetworking/cni/pkg/skel"
-	"github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/cni/pkg/types/040"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/google/uuid"
 	"github.com/vishvananda/netlink"
@@ -23,14 +23,14 @@ func randomVethName() string {
 	return vethPrefix + strings.Replace(uuidString.String(), "-", "", -1)[:vethLen]
 }
 
-func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface netlink.Link) (*current.Interface, *current.Interface, error) {
+func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface netlink.Link) (*types040.Interface, *types040.Interface, error) {
 	veth1Name, veth2Name, err := makeVeth()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	containerInterface := &current.Interface{}
-	hostInterface := &current.Interface{}
+	containerInterface := &types040.Interface{}
+	hostInterface := &types040.Interface{}
 
 	containerInterface.Name = args.IfName
 	hostInterface.Name = veth2Name

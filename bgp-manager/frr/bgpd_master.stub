@@ -10,7 +10,9 @@ router bgp 65000
   neighbor fabric peer-group
   neighbor fabric version 4+
   neighbor fabric remote-as 65000
+  neighbor fabric timers 3 9
   bgp listen range 0.0.0.0/0 peer-group fabric
+  bgp listen limit 5000
   !
   address-family l2vpn evpn
    neighbor fabric activate

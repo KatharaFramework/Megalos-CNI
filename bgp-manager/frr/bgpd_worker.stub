@@ -9,6 +9,7 @@ router bgp 65000
   neighbor fabric peer-group
   neighbor fabric version 4+
   neighbor fabric remote-as 65000
+  neighbor fabric timers 3 9
   neighbor __SERVICE_IP__ peer-group fabric
   !
   address-family l2vpn evpn
