@@ -1,60 +1,3 @@
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: psp.kathara.unprivileged
-spec:
-  privileged: true
-  volumes:
-  - hostPath
-  allowedHostPaths:
-  - pathPrefix: "/opt/cni/bin"
-  readOnlyRootFilesystem: false
-  allowPrivilegeEscalation: false
-  defaultAllowPrivilegeEscalation: false
-  allowedCapabilities: ['NET_ADMIN', 'NET_RAW', 'SYS_ADMIN']
-  defaultAddCapabilities: []
-  requiredDropCapabilities: []
-  hostPID: false
-  hostIPC: false
-  hostNetwork: true
-  runAsUser:
-    rule: RunAsAny
-  supplementalGroups:
-    rule: RunAsAny
-  fsGroup:
-    rule: RunAsAny
-  seLinux:
-    rule: 'RunAsAny'
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: kathara
-rules:
-  - apiGroups: ['extensions']
-    resources: ['podsecuritypolicies']
-    verbs: ['use']
-    resourceNames: ['psp.kathara.unprivileged']
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: kathara
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kathara
-subjects:
-- kind: ServiceAccount
-  name: kathara
-  namespace: kube-system
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kathara
-  namespace: kube-system
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -84,7 +27,6 @@ spec:
           env:
             - name: IS_MASTER
               value: "true"
-      serviceAccountName: kathara
 ---
 apiVersion: v1
 kind: Service
@@ -144,4 +86,3 @@ spec:
         - name: cnibin
           hostPath:
             path: /opt/cni/bin
-      serviceAccountName: kathara

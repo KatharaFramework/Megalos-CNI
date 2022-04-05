@@ -11,10 +11,6 @@ if [ "$IS_MASTER" = "false" ]; then
   cp -f /$KATHARA_CNI_BIN_FILE $CNI_BIN_DIR/_megalos
   mv -f $CNI_BIN_DIR/_megalos $CNI_BIN_DIR/megalos
 
-  # Bump TCP buffers
-  sysctl -w net.core.rmem_max=16777216
-  sysctl -w net.core.wmem_max=16777216
-
   # Configure frr
   rm -Rf /etc/frr/bgpd_master.stub
   mv /etc/frr/bgpd_worker.stub /etc/frr/frr.conf

@@ -1,6 +1,7 @@
 # Megalos CNI
 
 This repository contains the Golang source code for the Megalos CNI Plugin and the Megalos BGP Manager.
+Megalos CNI is compatible with Kubernetes **v1.25+**. Previous versions **are not supported**.
 
 This plugin creates pure L2 LANs distributed across different worker nodes using VXLAN.
 
