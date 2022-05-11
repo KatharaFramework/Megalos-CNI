@@ -1,6 +1,7 @@
 # Megalos CNI
 
 This repository contains the Golang source code for the Megalos CNI Plugin and the Megalos BGP Manager.
+Megalos CNI is compatible with Kubernetes **v1.25+**. Previous versions **are not supported**.
 
 This plugin creates pure L2 LANs distributed across different worker nodes using VXLAN.
 
@@ -14,7 +15,7 @@ After that you can deploy the Kathara DaemonSet using:
 
 `kubectl create -f kathara-daemonset.yml`
 
-**Beware**: Megalos CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI that manages L3 (e.g. Flannel, Calico...).
+**Beware**: Megalos CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI that manages L3 (e.g. Flannel, Calico).
 
 ## How it works
 
@@ -42,7 +43,7 @@ In this repository you'll find two folders:
 ### Steps to build and deploy a custom version of the CNI
 
 1. Change the `IMAGE_NAME` variable in `Makefile` with a custom tag `<CUSTOM_NAME>`.
-2. Run on terminal `make all` (Golang should be installed, all dependencies are automatically resolved).
+2. Run on terminal `make all`, this will create a Docker container that will build the CNI binary from source.
 3. Push the Docker Image on your Docker Hub Repository using `docker push <CUSTOM_NAME>`.
 4. Change the `kathara-daemonset.yml` file and replace `kathara/megalos-bgp-manager` with `<CUSTOM_NAME>`.
 5. Install the DaemonSet in your Kubernetes cluster using `kubeadm create -f kathara-daemonset.yml`.
