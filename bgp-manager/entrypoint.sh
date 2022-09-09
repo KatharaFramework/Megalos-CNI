@@ -5,7 +5,7 @@ set -e
 
 if [ "$IS_MASTER" = "false" ]; then
   CNI_BIN_DIR="/host/opt/cni/bin"
-  KATHARA_CNI_BIN_FILE="megalos"
+  KATHARA_CNI_BIN_FILE="megalos-$(dpkg --print-architecture)"
 
   # Copy CNI Plugin File into host's /opt/cni/bin
   cp -f /$KATHARA_CNI_BIN_FILE $CNI_BIN_DIR/_megalos
