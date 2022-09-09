@@ -14,6 +14,18 @@ spec:
       labels:
         name: kube-kathara-master
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
       containers:
         - name: kube-kathara-master
           image: kathara/megalos-bgp-manager:latest
@@ -60,7 +72,19 @@ spec:
       labels:
         name: kube-kathara-worker-ds
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
       hostNetwork: true
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
       containers:
         - name: kube-kathara-worker
           image: kathara/megalos-bgp-manager:latest
