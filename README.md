@@ -43,7 +43,8 @@ In this repository you'll find two folders:
 ### Steps to build and deploy a custom version of the CNI
 
 1. Change the `IMAGE_NAME` variable in `Makefile` with a custom tag `<CUSTOM_NAME>`.
-2. Run on terminal `make all`, this will create a Docker container that will build the CNI binary from source.
-3. Push the Docker Image on your Docker Hub Repository using `docker push <CUSTOM_NAME>`.
-4. Change the `kathara-daemonset.yml` file and replace `kathara/megalos-bgp-manager` with `<CUSTOM_NAME>`.
-5. Install the DaemonSet in your Kubernetes cluster using `kubeadm create -f kathara-daemonset.yml`.
+2. Run on terminal `make all`, this will:
+    1. Create a Docker container that will build the CNI binary from source for both `amd64` and `arm64` architectures.
+    2. Push the Docker Image on your Docker Hub Repository.
+3. Change the `kathara-daemonset.yml` file and replace `kathara/megalos-bgp-manager` with `<CUSTOM_NAME>`.
+4. Install the DaemonSet in your Kubernetes cluster using `kubeadm create -f kathara-daemonset.yml`.
