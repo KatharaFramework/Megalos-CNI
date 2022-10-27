@@ -7,15 +7,19 @@ This plugin creates pure L2 LANs distributed across different worker nodes using
 
 ### If you want to use Kathara with Megalos Manager without any changes, you should only download the `kathara-daemonset.yml` file.
 
+## Prerequisites 
+
+Before using the `kathara-daemonset', the [**Multus CNI**](https://github.com/intel/multus-cni) must be deployed in the cluster.
+
+See the [official installation guide](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md). 
+
 ## Usage
 
-Before using this DaemonSet, [**Multus CNI**](https://github.com/intel/multus-cni) must be deployed in the cluster.
-
-After that you can deploy the Kathara DaemonSet using:
-```
+Once you have deployed the [**Multus CNI**], you can deploy the Kathara DaemonSet simply typing:
+```bash
 kubectl create -f kathara-daemonset.yml
 ```
-**Beware**: Megalos CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI that manages L3 (e.g. Flannel, Calico).
+**Beware**: Megalos CNI is used only for additional Pod interfaces created by Multus CNI! For the `eth0` interface (required by Kubernetes) you must leverage on another CNI that manages L3 (e.g. [Flannel](https://github.com/flannel-io/flannel), [Calico](https://www.tigera.io/project-calico/)).
 
 ## How it works
 
