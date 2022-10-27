@@ -9,13 +9,13 @@ This plugin creates pure L2 LANs distributed across different worker nodes using
 
 ## Prerequisites 
 
-Before using the `kathara-daemonset', the [**Multus CNI**](https://github.com/intel/multus-cni) must be deployed in the cluster.
+Before using the `kathara-daemonset`, the [**Multus CNI**](https://github.com/intel/multus-cni) must be deployed in the cluster.
 
 See the [official installation guide](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md). 
 
 ## Usage
 
-Once you have deployed the [**Multus CNI**], you can deploy the Kathara DaemonSet simply typing:
+Once you have deployed the [**Multus CNI**](https://github.com/intel/multus-cni), you can deploy the `kathara-daemonset` simply typing:
 ```bash
 kubectl create -f kathara-daemonset.yml
 ```
