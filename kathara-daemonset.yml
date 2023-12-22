@@ -23,6 +23,8 @@ spec:
                 operator: In
                 values:
                 - linux
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
       tolerations:
       - operator: Exists
         effect: NoSchedule
@@ -81,6 +83,8 @@ spec:
                 operator: In
                 values:
                 - linux
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       hostNetwork: true
       tolerations:
       - operator: Exists
