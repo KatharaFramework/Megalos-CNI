@@ -2,9 +2,24 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/vishvananda/netlink"
 	"io/ioutil"
 )
+
+func parseArgs(args string) (map[string]string) {
+	parsedArgs := make(map[string]string)
+
+	splitArgs := strings.Split(args, ";")
+	for _, arg := range splitArgs {
+		argNameValue := strings.Split(arg, "=")
+
+		parsedArgs[argNameValue[0]] = argNameValue[1]
+	}
+
+	return parsedArgs
+}
 
 func getDefaultRouteInterfaceName() (int, error) {
 	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
