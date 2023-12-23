@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
@@ -24,7 +25,7 @@ func randomVethName() string {
 }
 
 func createVethPair(args *skel.CmdArgs, conf *MegalosConf, vxlanBridgeInterface netlink.Link) (*types040.Interface, *types040.Interface, error) {
-	veth1Name, veth2Name, err := makeVeth()
+	veth1Name, veth2Name, err := makeVeth(args)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -129,13 +130,25 @@ func deleteVethPair(args *skel.CmdArgs) error {
 	return nil
 }
 
-func makeVeth() (string, string, error) {
+func makeVeth(args *skel.CmdArgs) (string, string, error) {
+	parsedArgs := parseArgs(args.Args)
+
 	for i := 0; i < 10; i++ {
 		veth1Name := randomVethName()
 		veth2Name := randomVethName()
 
 		linkAttrs := netlink.NewLinkAttrs()
 		linkAttrs.Name = veth1Name
+
+		_, hasMacAddress := parsedArgs["MAC"]
+		if hasMacAddress {
+			parsedMac, err := net.ParseMAC(parsedArgs["MAC"])
+			if err != nil {
+				return "", "", fmt.Errorf("failed to parse MAC Address %q: %v", parsedArgs["MAC"], err)
+			}
+
+			linkAttrs.HardwareAddr = parsedMac
+		}
 
 		err := netlink.LinkAdd(&netlink.Veth{
 			LinkAttrs: linkAttrs,

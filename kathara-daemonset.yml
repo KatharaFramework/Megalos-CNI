@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-kathara-master
+  name: kube-kathara-control-plane
   namespace: kube-system
   labels:
-    name: kube-kathara-master
+    name: kube-kathara-control-plane
 spec:
   selector:
     matchLabels:
-      name: kube-kathara-master
+      name: kube-kathara-control-plane
   template:
     metadata:
       labels:
-        name: kube-kathara-master
+        name: kube-kathara-control-plane
     spec:
       affinity:
         nodeAffinity:
@@ -23,11 +23,13 @@ spec:
                 operator: In
                 values:
                 - linux
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
       tolerations:
       - operator: Exists
         effect: NoSchedule
       containers:
-        - name: kube-kathara-master
+        - name: kube-kathara-control-plane
           image: kathara/megalos-bgp-manager:latest
           imagePullPolicy: Always
           securityContext:
@@ -37,7 +39,7 @@ spec:
                 - NET_RAW
                 - SYS_ADMIN
           env:
-            - name: IS_MASTER
+            - name: IS_CONTROL_PLANE
               value: "true"
 ---
 apiVersion: v1
@@ -50,7 +52,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    name: kube-kathara-master
+    name: kube-kathara-control-plane
   ports:
     - protocol: TCP
       port: 179
@@ -81,6 +83,8 @@ spec:
                 operator: In
                 values:
                 - linux
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       hostNetwork: true
       tolerations:
       - operator: Exists
@@ -100,7 +104,7 @@ spec:
                 - NET_RAW
                 - SYS_ADMIN
           env:
-            - name: IS_MASTER
+            - name: IS_CONTROL_PLANE
               value: "false"
             - name: NODE_IP
               valueFrom:

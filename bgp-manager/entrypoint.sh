@@ -3,7 +3,7 @@
 # Always exit on errors.
 set -e
 
-if [ "$IS_MASTER" = "false" ]; then
+if [ "$IS_CONTROL_PLANE" = "false" ]; then
   CNI_BIN_DIR="/host/opt/cni/bin"
   KATHARA_CNI_BIN_FILE="megalos-$(dpkg --print-architecture)"
 
